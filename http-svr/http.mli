@@ -28,7 +28,7 @@ type authorization =
 
 val read_http_header: bytes -> Unix.file_descr -> int
 
-val read_http_request_header: bytes -> Unix.file_descr -> int * bool
+val read_http_request_header: bytes -> Unix.file_descr -> int * bool * string option
 val read_http_response_header: bytes -> Unix.file_descr -> int
 
 module Accept : sig

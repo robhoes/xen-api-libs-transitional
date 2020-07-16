@@ -277,11 +277,33 @@ let read_frame_header buf =
     Scanf.sscanf prefix "FRAME %012d" (fun x -> Some x)
   with _ -> None
 
+let proxy_header_length = 61
+
+(* PROXY TCP6 ::ffff:10.80.3.142 ::ffff:10.71.56.140 34224 443 *)
+let read_proxy_header buf =
+  let prefix =
+    Bytes.sub_string buf 0 proxy_header_length
+  in
+  try
+    Scanf.sscanf prefix "PROXY %s@\r\n" (fun x -> Some x)
+  with _ -> None
+
 let read_http_request_header buf fd =
-  Unixext.really_read fd buf 0 frame_header_length;
+  Unixext.really_read fd buf 0 5;
+  let proxy =
+    if Bytes.sub_string buf 0 5 = "PROXY" then begin
+      let _ = read_up_to buf 5 "\r\n" fd in
+      read_proxy_header buf
+    end else
+      None
+  in
+  if proxy = None then
+    Unixext.really_read fd buf 5 (frame_header_length - 5)
+  else
+    Unixext.really_read fd buf 0 frame_header_length;
   match read_frame_header buf with
-  | None -> read_up_to buf frame_header_length end_of_headers fd, false
-  | Some length -> Unixext.really_read fd buf 0 length; length, true
+  | None -> read_up_to buf frame_header_length end_of_headers fd, false, proxy
+  | Some length -> Unixext.really_read fd buf 0 length; length, true, proxy
 
 let read_http_response_header buf fd =
   Unixext.really_read fd buf 0 frame_header_length;

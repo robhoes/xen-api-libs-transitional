@@ -346,7 +346,8 @@ let request_of_bio_exn bio =
   let fd = Buf_io.fd_of bio in
 
   let buf = Bytes.create 1024 in
-  let b, frame = Http.read_http_request_header buf fd in
+  let b, frame, proxy = Http.read_http_request_header buf fd in
+  Option.iter (fun x -> debug "PROXY %s" x) proxy;
   let buf = Bytes.sub_string buf 0 b in
 (*
 	Printf.printf "parsed = [%s]\n" buf;
